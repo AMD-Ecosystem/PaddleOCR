@@ -1,0 +1,42 @@
+# Modifications Copyright (C) 2026 Advanced Micro Devices, Inc. All rights reserved.
+#
+# One-click Docker Compose for the PaddleOCR broader toolkit on AMD GPU (ROCm):
+# PP-OCRv6 (det/rec/cls), PP-StructureV3, PP-DocTranslation. GPU compute rides
+# the ROCm PaddlePaddle wheel (amd-paddlepaddle); select the served pipeline via
+# PIPELINE in .env. Device passthrough + video group mirror the PaddleOCR-VL
+# AMD-GPU deployment.
+#
+# Usage (in this directory):
+#   docker compose build          # or: docker compose pull, if using a registry image
+#   docker compose up
+services:
+  paddleocr-toolkit-api:
+    image: ${IMAGE:-paddleocr-toolkit:amd-gpu}
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        AMD_PADDLE_VERSION: ${AMD_PADDLE_VERSION:-3.4.0.dev20260825}
+        AMD_PADDLE_INDEX_URL: ${AMD_PADDLE_INDEX_URL:-https://pypi.amd.com/rocm-10.1/simple}
+    container_name: paddleocr-toolkit-api
+    ports:
+      - ${SERVE_PORT:-8080}:8080
+    devices:
+      - /dev/kfd
+      - /dev/dri
+    group_add:
+      - video
+    cap_add:
+      - SYS_PTRACE
+    security_opt:
+      - seccomp=unconfined
+    shm_size: 64g
+    # TODO: Allow using a regular user
+    user: root
+    restart: unless-stopped
+    environment:
+      - HIP_VISIBLE_DEVICES=${HIP_VISIBLE_DEVICES:-0}
+    command: /bin/bash -c "paddlex --serve --pipeline ${PIPELINE:-OCR} --host 0.0.0.0 --port 8080"
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:8080/health || exit 1"]
+      start_period: 300s
