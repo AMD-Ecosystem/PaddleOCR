@@ -1,0 +1,51 @@
+# Modifications Copyright (C) 2026 Advanced Micro Devices, Inc. All rights reserved.
+#
+# pip constraints for the AMD GPU (ROCm) broader-toolkit path.
+#
+# Installing "paddleocr[doc-parser]" on an AMD host can transitively resolve the
+# CUDA-built PaddlePaddle wheels (paddlepaddle / paddlepaddle-gpu) or NVIDIA CUDA
+# runtime wheels, which would shadow the ROCm build (amd-paddlepaddle) and break
+# GPU dispatch on Instinct. Pin every such wheel to ==0 so only the ROCm wheel
+# resolves. Install with:  pip install "paddleocr[doc-parser]" -c amd-constraints.txt
+#
+# See KB pip-cuda-wheel-exclusion-constraints-file.
+
+# --- PaddlePaddle CUDA wheels (block; use amd-paddlepaddle from the ROCm index) ---
+paddlepaddle==0
+paddlepaddle-gpu==0
+
+# --- NVIDIA CUDA runtime wheels (cu11 / cu12 / cu13 + unsuffixed) ---
+nvidia-cublas-cu12==0
+nvidia-cuda-cupti-cu12==0
+nvidia-cuda-nvrtc-cu12==0
+nvidia-cuda-runtime-cu12==0
+nvidia-cudnn-cu12==0
+nvidia-cufft-cu12==0
+nvidia-curand-cu12==0
+nvidia-cusolver-cu12==0
+nvidia-cusparse-cu12==0
+nvidia-cusparselt-cu12==0
+nvidia-ml-py==0
+nvidia-nccl-cu12==0
+nvidia-nvjitlink-cu12==0
+nvidia-nvtx-cu12==0
+nvidia_cublas_cu11==0
+nvidia_cuda_cupti_cu11==0
+nvidia_cuda_nvrtc_cu11==0
+nvidia_cuda_runtime_cu11==0
+nvidia_cudnn_cu11==0
+cuda-toolkit==0
+nvidia-cublas==0
+nvidia-cudnn-cu13==0
+nvidia-cusparselt-cu13==0
+nvidia-nccl-cu13==0
+nvidia-nvshmem-cu13==0
+nvidia-cuda-cupti==0
+nvidia-cuda-nvrtc==0
+nvidia-cuda-runtime==0
+nvidia-cufft==0
+nvidia-cufile==0
+nvidia-curand==0
+nvidia-cusolver==0
+nvidia-cusparse==0
+nvidia-nvtx==0
