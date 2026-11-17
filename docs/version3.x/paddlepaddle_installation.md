@@ -100,18 +100,4 @@ python -m pip install https://paddle-qa.bj.bcebos.com/paddle-pipeline/Develop-Ta
 
 ## 4. AMD GPU (ROCm) 环境安装飞桨
 
-要在 AMD Instinct GPU 上运行 PaddleOCR 通用套件（PP-OCRv6、PP-StructureV3、PP-DocTranslation），请从 AMD 索引安装飞桨的 ROCm 构建（`amd-paddlepaddle` wheel）。设备选择是框架透明的 —— `paddle.set_device('gpu')` 在 ROCm 上会路由到 HIP。
-
-```bash
-# ROCm 10.1 主机；已在 AMD Instinct MI300X (gfx942) 上验证
-python -m pip install amd-paddlepaddle==3.4.0.dev20260825 \
-  --index-url https://pypi.amd.com/rocm-10.1/simple
-```
-
-验证：
-
-```bash
-python -c "import paddle; paddle.utils.run_check(); print(paddle.device.get_device())"
-```
-
-完整安装、快速开始及一键 Docker Compose 部署（含 CUDA wheel 屏蔽约束），请参考 [AMD GPU (ROCm) 飞桨安装教程](./other_devices_support/paddlepaddle_install_AMD_GPU.md)。
+要在 AMD Instinct GPU 上运行 PaddleOCR，请使用 ROCm 版 PaddlePaddle。ROCm 版没有预编译的 wheel，需要从源码编译。编译步骤、PaddleOCR 的安装以及快速开始请参考 [AMD GPU（ROCm）飞桨安装教程](./other_devices_support/paddlepaddle_install_AMD_GPU.md)。

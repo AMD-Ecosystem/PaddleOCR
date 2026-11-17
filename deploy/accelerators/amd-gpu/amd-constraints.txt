@@ -1,16 +1,16 @@
 # Modifications Copyright (C) 2026 Advanced Micro Devices, Inc. All rights reserved.
 #
-# pip constraints for the AMD GPU (ROCm) broader-toolkit path.
+# pip constraints for running PaddleOCR on AMD GPUs with ROCm.
 #
-# Installing "paddleocr[doc-parser]" on an AMD host can transitively resolve the
-# CUDA-built PaddlePaddle wheels (paddlepaddle / paddlepaddle-gpu) or NVIDIA CUDA
-# runtime wheels, which would shadow the ROCm build (amd-paddlepaddle) and break
-# GPU dispatch on Instinct. Pin every such wheel to ==0 so only the ROCm wheel
-# resolves. Install with:  pip install "paddleocr[doc-parser]" -c amd-constraints.txt
+# Installing "paddleocr[doc-parser]" can pull in the CUDA builds of PaddlePaddle
+# (paddlepaddle, paddlepaddle-gpu) or the NVIDIA CUDA runtime wheels. Those would
+# replace the ROCm build of PaddlePaddle and stop PaddleOCR from using the AMD
+# GPU. Each such wheel is pinned to ==0 here so that it cannot be installed.
 #
-# See KB pip-cuda-wheel-exclusion-constraints-file.
+# Usage, from the repository root:
+#   pip install -e ".[doc-parser]" -c deploy/accelerators/amd-gpu/amd-constraints.txt
 
-# --- PaddlePaddle CUDA wheels (block; use amd-paddlepaddle from the ROCm index) ---
+# --- PaddlePaddle CUDA wheels ---
 paddlepaddle==0
 paddlepaddle-gpu==0
 
