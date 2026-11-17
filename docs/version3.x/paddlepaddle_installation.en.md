@@ -100,18 +100,4 @@ The currently released PaddlePaddle wheel packages for Windows 50-series GPUs st
 
 ## 4. Install PaddlePaddle for AMD GPU (ROCm)
 
-To run the PaddleOCR broader toolkit (PP-OCRv6, PP-StructureV3, PP-DocTranslation) on AMD Instinct GPUs, install the ROCm build of PaddlePaddle (the `amd-paddlepaddle` wheel) from the AMD index. Device selection is framework-transparent -- `paddle.set_device('gpu')` routes to HIP on ROCm.
-
-```bash
-# ROCm 10.1 host; validated on AMD Instinct MI300X (gfx942)
-python -m pip install amd-paddlepaddle==3.4.0.dev20260825 \
-  --index-url https://pypi.amd.com/rocm-10.1/simple
-```
-
-Verify:
-
-```bash
-python -c "import paddle; paddle.utils.run_check(); print(paddle.device.get_device())"
-```
-
-For the full install + quick-start + one-click Docker Compose deployment (including the CUDA-wheel exclusion constraints), see the [AMD GPU (ROCm) PaddlePaddle Installation Tutorial](./other_devices_support/paddlepaddle_install_AMD_GPU.en.md).
+To run PaddleOCR on AMD Instinct GPUs, use the ROCm build of PaddlePaddle. There is no prebuilt ROCm wheel, so you build PaddlePaddle from source. The [AMD GPU (ROCm) PaddlePaddle Installation Tutorial](./other_devices_support/paddlepaddle_install_AMD_GPU.en.md) covers the build, the PaddleOCR install, and a quick start.

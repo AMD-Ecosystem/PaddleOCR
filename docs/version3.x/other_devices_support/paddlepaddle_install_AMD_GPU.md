@@ -4,143 +4,82 @@ comments: true
 
 <!-- Modifications Copyright (C) 2026 Advanced Micro Devices, Inc. All rights reserved. -->
 
-# AMD GPU (ROCm) 飞桨安装教程
+# AMD GPU（ROCm）飞桨安装教程
 
-本教程介绍如何在 AMD Instinct GPU 上通过 ROCm/HIP 运行 PaddleOCR 通用套件 —— PP-OCRv6（检测 / 识别 / 分类）、PP-StructureV3、PP-DocTranslation。
+本教程介绍如何通过 ROCm 在 AMD Instinct GPU 上运行 PaddleOCR。
 
-GPU 计算由飞桨的 ROCm 构建（`amd-paddlepaddle` wheel）承载。PaddleOCR 是基于 `paddle` / `paddlex` 的纯 Python 套件，无需修改源码：`paddle.set_device('gpu')`（或流水线配置中的 `gpu` 设备字符串）在 ROCm 上会路由到 HIP，与在 NVIDIA 上路由到 CUDA 完全一致。
+PaddleOCR 是基于飞桨（PaddlePaddle）的 Python 工具包，在 AMD GPU 上运行无需修改源码。GPU 计算由 ROCm 版 PaddlePaddle 完成，指定 `device="gpu"` 即可在 AMD GPU 上执行。
 
 > INFO:
-> PaddleOCR-VL 旗舰模型有独立的 AMD GPU 路径（使用百度托管镜像），请参考 [PaddleOCR-VL AMD GPU 使用教程](../pipeline_usage/PaddleOCR-VL-AMD-GPU.md)。本文档覆盖通用（非 VL）套件流水线。
+> PaddleOCR-VL 模型有单独的 AMD GPU 使用方式，请参考 [PaddleOCR-VL AMD GPU 使用教程](../pipeline_usage/PaddleOCR-VL-AMD-GPU.md)。本文档介绍通用 OCR 产线。
 
-## 支持矩阵
+## 已测试的配置
 
-| 项目 | 状态 |
+| 项目 | 取值 |
 | --- | --- |
-| GPU（已验证） | AMD Instinct MI300X (gfx942) |
-| GPU（主要目标，持续验证） | AMD Instinct MI350X / MI355X (gfx950) |
-| ROCm | 10.1（manylinux2.28 容器；镜像 `10.1.0a20260821`） |
-| Python | 3.11 |
-| 飞桨 wheel | `amd-paddlepaddle`（ROCm 构建） |
-| PP-OCRv6（检测/识别/分类） | 支持 |
-| PP-StructureV3 | 支持 |
-| PP-DocTranslation | 尽力支持（翻译 LLM 步骤可能需要额外模型服务） |
-| 自定义算子 `RoIAlignRotated`（旋转/SAST 路径） | 通过 `paddle.utils.cpp_extension.load` 经 hipcc JIT 编译 |
+| GPU | AMD Instinct MI355X（`gfx950`） |
+| ROCm | 10.1.0，通过公开的 ROCm Python 包安装 |
+| 操作系统 | Ubuntu 24.04 |
+| Python | 3.12 |
+| PaddlePaddle | v3.4.0，从源码编译并启用 ROCm 支持 |
+| 产线 | 通用 OCR（PP-OCRv6 文本检测与识别） |
 
-> INFO:
-> 由于硬件多样性，目前仅在 MI300X (gfx942) 上完成精度/速度验证；MI350X/MI355X (gfx950) 为主要目标并持续验证。欢迎社区在其它 AMD GPU 上测试并分享结果。
+其他 AMD Instinct GPU 以及其他 PaddleOCR 产线尚未按本流程运行验证。
 
-### 已知框架级限制
+## 1. 编译并安装支持 ROCm 的 PaddlePaddle
 
-以下为 ROCm 飞桨引擎（而非 PaddleOCR 套件）的限制，随飞桨 ROCm 构建一并跟踪：
+ROCm 版 PaddlePaddle 没有预编译的 wheel。请按照 [Building and Testing PaddlePaddle on AMD Instinct GPUs with ROCm](https://github.com/AMD-Ecosystem/Paddle/blob/rocm-enablement/VALIDATION_NOTES.md) 从源码编译，并安装编译得到的 wheel。
 
-- BF16 卷积路径依赖 MIOpen 对具体配置的覆盖。
-- ROCm 上的 FlashAttention 依赖引擎支持；需要它的模型可能回退到较慢的注意力路径。
+后续步骤请继续使用该指南中创建的 Python 虚拟环境和 ROCm 环境变量。PaddleOCR 会在首次使用时编译部分 GPU 内核，因此该指南中安装的 C/C++ 编译工具需要保留在系统中。
 
-如遇上述情况，请优先使用 FP32/FP16 执行或默认（非 flash）注意力路径。
+## 2. 安装 PaddleOCR
 
-## 1. 环境准备
-
-有两种方法，**强烈建议使用 Docker 镜像以减少环境问题。**
-
-### 1.1 方法一：Docker 镜像
-
-从随附的 Dockerfile 构建通用套件 ROCm 镜像（需要 Docker >= 19.03）：
+在同一个 Python 环境中，从本仓库根目录安装 PaddleOCR。
 
 ```bash
-# 在仓库根目录执行
-docker build \
-  -f deploy/accelerators/amd-gpu/Dockerfile \
-  --build-arg AMD_PADDLE_VERSION=3.4.0.dev20260825 \
-  -t paddleocr-toolkit:amd-gpu \
-  deploy/accelerators/amd-gpu
+sudo apt-get install -y libgl1 libglib2.0-0 libgomp1
+
+pip install -e ".[doc-parser]" \
+  -c deploy/accelerators/amd-gpu/amd-constraints.txt "numpy<2"
 ```
 
-以 AMD GPU 设备透传和 `video` 组运行容器：
+该约束文件用于阻止 `pip` 安装 CUDA 版 PaddlePaddle 以及 CUDA 运行时 wheel，以免覆盖 ROCm 版本。
+
+确认 PaddlePaddle 已启用 ROCm 支持并可以使用 GPU。
 
 ```bash
-docker run -it \
-  --device /dev/kfd \
-  --device /dev/dri \
-  --group-add video \
-  --cap-add SYS_PTRACE \
-  --security-opt seccomp=unconfined \
-  --shm-size 64g \
-  -e HIP_VISIBLE_DEVICES=0 \
-  paddleocr-toolkit:amd-gpu \
-  /bin/bash
-# 然后在容器内调用 PaddleOCR CLI 或 Python API。
+python -c "import paddle; print(paddle.device.is_compiled_with_rocm()); paddle.utils.run_check()"
 ```
 
-### 1.2 方法二：手动安装
+该命令会输出 `True`，随后输出 PaddlePaddle 安装成功的提示。
 
-如无法使用 Docker，可在 ROCm 10.1 主机的全新虚拟环境中安装：
+## 3. 快速开始
+
+下载示例图片，并通过命令行在 GPU 上运行通用 OCR 产线。
 
 ```bash
-# 创建并激活虚拟环境
-python -m venv .venv_paddleocr
-source .venv_paddleocr/bin/activate
-
-# 从 AMD 索引安装 ROCm 飞桨 wheel
-python -m pip install amd-paddlepaddle==3.4.0.dev20260825 \
-  --index-url https://pypi.amd.com/rocm-10.1/simple
-
-# 安装 PaddleOCR，并屏蔽 CUDA 飞桨 wheel，仅解析 ROCm wheel
-# （见 deploy/accelerators/amd-gpu/amd-constraints.txt）
-python -m pip install "paddleocr[doc-parser]" \
-  -c deploy/accelerators/amd-gpu/amd-constraints.txt
+wget https://paddle-model-ecology.bj.bcebos.com/paddlex/imgs/demo_image/general_ocr_002.png
+paddleocr ocr -i general_ocr_002.png --device gpu
 ```
 
-验证 ROCm 引擎导入并枚举 GPU：
-
-```bash
-python -c "import paddle; paddle.utils.run_check(); print(paddle.device.get_device())"
-```
-
-期望输出包含：
-
-```
-PaddlePaddle is installed successfully! Let's start deep learning with PaddlePaddle now.
-gpu:0
-```
-
-## 2. 快速开始
-
-在 GPU 上运行通用 OCR 流水线：
+使用 Python 运行同一产线：
 
 ```python
 from paddleocr import PaddleOCR
 
-# 设备选择是框架透明的：ROCm 上 'gpu' 会路由到 HIP。
 ocr = PaddleOCR(device="gpu")
-result = ocr.predict("path/to/image.png")
+result = ocr.predict("general_ocr_002.png")
 for res in result:
     res.print()
     res.save_to_img("output")
     res.save_to_json("output")
 ```
 
-PP-StructureV3（版面 + 表格 + 公式）：
+首次运行会下载模型文件。程序会打印识别出的文本，并将标注后的图片和 JSON 文件保存到 `output` 目录。
 
-```python
-from paddleocr import PPStructureV3
+## 已知限制
 
-pipeline = PPStructureV3(device="gpu")
-result = pipeline.predict("path/to/document.pdf")
-for res in result:
-    res.save_to_json("output")
-    res.save_to_markdown("output")
-```
+以下是 ROCm 版 PaddlePaddle 的限制，与 PaddleOCR 本身无关。
 
-## 3. 一键服务部署（Docker Compose）
-
-使用随附的 Compose 文件一键部署 OCR / Structure 服务：
-
-```bash
-cd deploy/accelerators/amd-gpu
-# 在 .env 中选择流水线（PIPELINE=OCR | PP-StructureV3 | PP-DocTranslation）
-docker compose build
-docker compose up
-```
-
-服务默认监听 `8080` 端口。如需指定某张 GPU，请在 `.env` 中设置 `HIP_VISIBLE_DEVICES`。所有可调项见 `deploy/accelerators/amd-gpu/.env`。
+- 不包含通过 MIOpen 实现的 BF16 卷积。
+- ROCm 版本中未启用 FlashAttention。
